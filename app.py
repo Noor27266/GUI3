@@ -1,73 +1,27 @@
-import numpy as np
-import pandas as pd
-import tensorflow as tf
-from tensorflow.keras import layers, models
-from sklearn.metrics import mean_absolute_error, r2_score
 import tkinter as tk
 from tkinter import messagebox
-from tensorflow.keras.models import load_model
+import numpy as np
+from sklearn.linear_model import LinearRegression
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import mean_absolute_error
 
-# Load the dataset (make sure you replace this with your actual dataset)
+# Load your dataset or use example data
+# Assuming you already have input data as x and target values as y
 # Example:
-# data = pd.read_csv("your_data.csv")
-# Ensure the data is formatted correctly for training
-# For this example, we will create dummy data:
-data = pd.DataFrame({
-    'f_c': np.random.rand(100),  # Concrete Compressive Strength
-    'f_y': np.random.rand(100),  # Yield Strength of Reinforcement
-    'h': np.random.rand(100),    # Height of Wall
-    'tw': np.random.rand(100),   # Thickness of Wall
-    'P': np.random.rand(100),    # Applied Load
-    'M': np.random.rand(100),    # Moment
-    'V': np.random.rand(100),    # Shear
-    'rho': np.random.rand(100),  # Steel Reinforcement Ratio
-    'mu': np.random.rand(100),   # Flexural Strength Ratio
-    'Energy': np.random.rand(100)  # Target (Energy Dissipation)
-})
+x = np.random.rand(100, 9)  # 9 features (same as your inputs)
+y = np.random.rand(100)     # Target variable (Energy Dissipation)
 
-# Separate input features (X) and target variable (Y)
-Input = data.iloc[:, :-1].values
-Target = data.iloc[:, -1].values
+# Split the data into training and test sets
+x_train, x_test, y_train, y_test = train_test_split(x, y, test_size=0.2, random_state=42)
 
-# Transpose to match input/output shape if necessary
-x = Input.T
-t = Target.T
+# Create and train a simple linear regression model
+model = LinearRegression()
+model.fit(x_train, y_train)
 
-# Split the data into training, validation, and test sets
-train_size = int(0.8 * x.shape[1])
-val_size = int(0.1 * x.shape[1])
-x_train, x_val, x_test = x[:, :train_size], x[:, train_size:train_size+val_size], x[:, train_size+val_size:]
-t_train, t_val, t_test = t[:train_size], t[train_size:train_size+val_size], t[train_size+val_size:]
-
-# Define the ANN model
-model = models.Sequential()
-model.add(layers.Input(shape=(x.shape[0],)))  # Input layer
-model.add(layers.Dense(10, activation='relu'))  # Hidden layer
-model.add(layers.Dense(1))  # Output layer
-
-# Compile the model
-model.compile(optimizer='adam', 
-              loss='mean_squared_error',
-              metrics=['accuracy'])
-
-# Train the model
-model.fit(x_train.T, t_train.T, epochs=200, batch_size=10, validation_data=(x_val.T, t_val.T))
-
-# Predictions
-y_train = model.predict(x_train.T)
-y_test = model.predict(x_test.T)
-y_val = model.predict(x_val.T)
-
-# Performance Metrics
-MAE = mean_absolute_error(t_test, y_test)
-R2 = r2_score(t_test, y_test)
-
-print(f"MAE: {MAE}")
-print(f"R2 Score: {R2}")
-
-# Save the model
-model.save('F:/Graphical User Interface/GUI3/ann_model.h5')
-print("Model training complete and saved as ann_model.h5.")
+# Evaluate the model
+y_pred = model.predict(x_test)
+mae = mean_absolute_error(y_test, y_pred)
+print(f"Mean Absolute Error: {mae}")
 
 # Function to make predictions on new data
 def predict_input():
@@ -84,16 +38,13 @@ def predict_input():
         mu = float(entry_mu.get())    # Flexural Strength Ratio (μ)
 
         # Construct the input feature array
-        user_input = np.array([f_c, f_y, h, tw, P, M, V, rho, mu])
-
-        # Load the trained model
-        model = load_model('F:/Graphical User Interface/GUI3/ann_model.h5')
+        user_input = np.array([f_c, f_y, h, tw, P, M, V, rho, mu]).reshape(1, -1)
 
         # Predict the energy dissipation capacity using the trained model
-        prediction = model.predict(user_input.reshape(1, -1))
+        prediction = model.predict(user_input)
 
         # Display the prediction result
-        result_label.config(text=f"Predicted Energy Dissipation: {prediction[0][0]:.2f} kN")
+        result_label.config(text=f"Predicted Energy Dissipation: {prediction[0]:.2f} kN")
     except ValueError:
         messagebox.showerror("Invalid Input", "Please enter valid numeric values for all fields.")
 
